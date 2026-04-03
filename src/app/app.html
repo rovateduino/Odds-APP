@@ -1,0 +1,356 @@
+<div class="min-h-screen bg-[#0D0D0F] text-[#E0E0E6] font-inter selection:bg-[#00FF88]/30">
+  
+  <!-- Main Content -->
+  <main class="min-h-screen flex flex-col">
+    
+    <!-- Header Fixo -->
+    <header class="sticky top-0 z-40 bg-[#0D0D0F]/80 backdrop-blur-md border-b border-[#25252E] p-4 md:p-6 mb-8">
+      <div class="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="flex items-center gap-4">
+          <div class="w-10 h-10 bg-gradient-to-br from-[#00FF88] to-[#00CCFF] rounded-xl flex items-center justify-center shadow-lg shadow-[#00FF88]/20">
+            <mat-icon class="text-black scale-75">query_stats</mat-icon>
+          </div>
+          <div>
+            <h1 class="font-poppins text-2xl font-black tracking-tight text-white">ODDS<span class="text-[#00FF88]">UP</span></h1>
+            <p class="text-[#888899] text-[10px] font-medium uppercase tracking-widest">Premium AI Analysis</p>
+          </div>
+        </div>
+        
+        @if (showInstallButton()) {
+          <button (click)="installApp()" 
+                  class="bg-[#00FF88]/10 border border-[#00FF88]/30 text-[#00FF88] px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-2 hover:bg-[#00FF88]/20 transition-all">
+            <mat-icon class="scale-75">install_mobile</mat-icon>
+            INSTALAR APP
+          </button>
+        }
+      </div>
+    </header>
+
+    <div class="px-4 md:px-8 pb-12 max-w-6xl mx-auto w-full flex-1">
+      <!-- League Selection -->
+      <div class="space-y-8 mb-12">
+        <!-- League Tabs -->
+        <div class="ligas-container flex overflow-x-auto gap-2 pb-4 scrollbar-hide no-scrollbar">
+          @for (league of leagueNames(); track league) {
+            <button (click)="selectedLeague.set(league); selectedTeam.set(null); showResults.set(false)"
+                    [class]="'liga-item whitespace-nowrap px-6 py-3 rounded-xl font-bold text-sm transition-all border-2 ' + 
+                             (selectedLeague() === league ? 'bg-[#00FF88] border-[#00FF88] text-black shadow-lg shadow-[#00FF88]/20' : 'bg-[#13131A] border-[#25252E] text-[#888899] hover:border-[#00FF88]/50')">
+              {{ league }}
+            </button>
+          }
+        </div>
+
+        <!-- League Games Card -->
+        @if (selectedLeague() && !loading() && !selectedTeam()) {
+          <div class="liga-card animate-fade-in">
+            <div class="flex items-center justify-between mb-8">
+              <div class="flex items-center gap-3">
+                <mat-icon class="text-[#00FF88]">calendar_month</mat-icon>
+                <h2 class="font-poppins font-black text-xl uppercase tracking-tight">
+                  📅 PRÓXIMOS JOGOS: {{ selectedLeague() }}
+                </h2>
+              </div>
+              @if (loadingGames()) {
+                <div class="flex items-center gap-2 text-[#00FF88] text-[10px] font-bold uppercase tracking-widest">
+                  <div class="w-3 h-3 border-2 border-[#00FF88] border-t-transparent rounded-full animate-spin"></div>
+                  Buscando jogos de {{ selectedLeague() }}...
+                </div>
+              }
+            </div>
+            
+            @if (gamesError()) {
+              <div class="bg-[#FF4444]/10 border border-[#FF4444]/30 p-6 rounded-2xl text-center space-y-4">
+                <mat-icon class="text-[#FF4444] scale-125">error_outline</mat-icon>
+                <p class="text-sm text-[#FF4444] font-medium">{{ gamesError() }}</p>
+                <button (click)="retryFetchGames()" 
+                        class="bg-[#FF4444] text-white px-6 py-2 rounded-lg font-bold text-xs hover:bg-[#FF4444]/80 transition-all">
+                  TENTAR NOVAMENTE
+                </button>
+              </div>
+            } @else if (!loadingGames() && leagueGames().length === 0) {
+              <div class="text-center py-12 border-2 border-dashed border-[#25252E] rounded-2xl space-y-4">
+                <mat-icon class="text-[#25252E] scale-[1.5] mb-2">event_busy</mat-icon>
+                <p class="text-[#888899] text-sm">⚠️ Nenhum jogo encontrado para os próximos 15 dias.</p>
+                <button (click)="retryFetchGames()" 
+                        class="bg-[#00FF88]/10 border border-[#00FF88]/30 text-[#00FF88] px-6 py-2 rounded-lg font-bold text-xs hover:bg-[#00FF88] hover:text-black transition-all uppercase tracking-widest">
+                  🔁 Buscar próximos 10 jogos
+                </button>
+              </div>
+            } @else {
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                @for (game of leagueGames(); track game.id) {
+                  <ng-container *ngTemplateOutlet="gameCard; context: { $implicit: game }"></ng-container>
+                }
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Team Games Card -->
+        @if (selectedTeam() && !loading()) {
+          <div class="liga-card animate-fade-in mb-8">
+            <div class="flex items-center justify-between mb-8">
+              <div class="flex items-center gap-3">
+                <mat-icon class="text-[#00FF88]">event_note</mat-icon>
+                <h2 class="font-poppins font-black text-xl uppercase tracking-tight">Próximos Jogos: {{ selectedTeam()?.name }}</h2>
+              </div>
+              @if (loadingGames()) {
+                <div class="flex items-center gap-2 text-[#00FF88] text-[10px] font-bold uppercase tracking-widest">
+                  <div class="w-3 h-3 border-2 border-[#00FF88] border-t-transparent rounded-full animate-spin"></div>
+                  Buscando...
+                </div>
+              }
+            </div>
+
+            @if (gamesError()) {
+              <div class="bg-[#FF4444]/10 border border-[#FF4444]/30 p-6 rounded-2xl text-center space-y-4">
+                <mat-icon class="text-[#FF4444] scale-125">error_outline</mat-icon>
+                <p class="text-sm text-[#FF4444] font-medium">{{ gamesError() }}</p>
+                <button (click)="retryFetchGames()" 
+                        class="bg-[#FF4444] text-white px-6 py-2 rounded-lg font-bold text-xs hover:bg-[#FF4444]/80 transition-all">
+                  TENTAR NOVAMENTE
+                </button>
+              </div>
+            } @else if (!loadingGames() && teamGames().length === 0) {
+              <div class="text-center py-12 border-2 border-dashed border-[#25252E] rounded-2xl">
+                <mat-icon class="text-[#25252E] scale-[1.5] mb-2">event_busy</mat-icon>
+                <p class="text-[#888899] text-sm">Nenhum jogo individual encontrado.</p>
+              </div>
+            } @else {
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                @for (game of teamGames(); track game.id) {
+                  <ng-container *ngTemplateOutlet="gameCard; context: { $implicit: game }"></ng-container>
+                }
+              </div>
+            }
+          </div>
+        }
+    </div>
+
+    <!-- Loading State with Progress -->
+    @if (loading()) {
+      <div class="py-20 text-center space-y-6 animate-pulse">
+        <div class="w-24 h-24 bg-[#13131A] rounded-full flex items-center justify-center mx-auto border-4 border-[#00FF88]/20 relative">
+          <div class="absolute inset-0 border-4 border-[#00FF88] rounded-full border-t-transparent animate-spin"></div>
+          <mat-icon class="text-[#00FF88] scale-[1.5]">psychology</mat-icon>
+        </div>
+        <div class="max-w-xs mx-auto space-y-4">
+          <h2 class="text-xl font-black text-white tracking-tight">Analisando dados...</h2>
+          <div class="h-2 bg-[#13131A] rounded-full overflow-hidden border border-[#25252E]">
+            <div class="h-full bg-[#00FF88] transition-all duration-300" [style.width.%]="aiLoadingProgress()"></div>
+          </div>
+          <p class="text-[#888899] text-xs font-bold uppercase tracking-widest">
+            {{ aiLoadingProgress() < 50 ? 'Coletando estatísticas...' : 'Consultando IA Gemini...' }}
+          </p>
+        </div>
+      </div>
+    }
+
+    <!-- Results Section -->
+    @if (showResults() && !loading()) {
+      <div id="analysis-content" class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        
+        <!-- Export Button -->
+        <div class="flex justify-end">
+          <button (click)="exportToPdf()" class="flex items-center gap-2 text-xs font-bold text-[#00FF88] hover:underline">
+            <mat-icon class="scale-75">download</mat-icon>
+            EXPORTAR PDF
+          </button>
+        </div>
+
+        <!-- Team Info -->
+        <div class="bg-[#13131A] p-6 rounded-2xl border border-[#25252E] grid md:grid-cols-2 gap-6">
+          <div class="space-y-4">
+            <div class="flex items-center gap-4">
+              @if (selectedTeam()?.logo) {
+                <img [src]="selectedTeam()?.logo" alt="Logo {{ selectedTeam()?.name }}" referrerpolicy="no-referrer" class="w-16 h-16">
+              }
+              <div>
+                <h2 class="font-poppins text-2xl font-bold">{{ selectedTeam()?.name }}</h2>
+                <p class="text-[#888899] text-sm">{{ selectedTeam()?.league }}</p>
+              </div>
+            </div>
+            <div class="flex gap-2">
+              @for (f of selectedTeam()?.form; track $index) {
+                <span [class]="'w-8 h-8 rounded flex items-center justify-center font-bold text-xs ' + 
+                              (f === 'V' ? 'bg-[#00FF88] text-black' : 
+                               f === 'E' ? 'bg-[#FFAA00] text-black' : 'bg-[#FF4444] text-white')">
+                  {{ f }}
+                </span>
+              }
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-1">
+              <span class="text-[10px] uppercase font-bold text-[#888899] tracking-widest">Média de Gols</span>
+              <p class="text-lg font-bold">{{ selectedTeam()?.goalsFor }} / jogo</p>
+            </div>
+            <div class="space-y-1">
+              <span class="text-[10px] uppercase font-bold text-[#888899] tracking-widest">Média de Cartões</span>
+              <p class="text-lg font-bold">{{ selectedTeam()?.cards }} / jogo</p>
+            </div>
+            <div class="space-y-1">
+              <span class="text-[10px] uppercase font-bold text-[#888899] tracking-widest">Escanteios</span>
+              <p class="text-lg font-bold">{{ selectedTeam()?.corners }} / jogo</p>
+            </div>
+            <div class="space-y-1">
+              <span class="text-[10px] uppercase font-bold text-[#888899] tracking-widest">Gols Sofridos</span>
+              <p class="text-lg font-bold">{{ selectedTeam()?.goalsAgainst }} / jogo</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Analysis Text -->
+        <div class="bg-[#13131A] p-8 rounded-2xl border-l-4 border-[#00FF88] relative overflow-hidden">
+          <mat-icon class="absolute -right-4 -bottom-4 text-[#00FF88]/5 scale-[5] rotate-12">psychology</mat-icon>
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2 text-[#00FF88] font-black text-xs tracking-[0.2em] uppercase">
+              <mat-icon class="scale-75">auto_awesome</mat-icon>
+              Análise Completa da IA Gemini
+            </div>
+          </div>
+          <p class="text-[#E0E0E6] leading-relaxed text-lg font-medium italic">
+            "{{ aiAnalysis() }}"
+          </p>
+        </div>
+
+        <!-- Markets Grid -->
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          @for (market of markets(); track market.title) {
+            <div class="bg-[#13131A] p-6 rounded-2xl border border-[#25252E] hover:border-[#00FF88]/30 transition-all group">
+              <div class="flex items-center gap-3 mb-6">
+                <div class="w-8 h-8 rounded-lg bg-[#1A1A24] flex items-center justify-center group-hover:bg-[#00FF88]/10 transition-all">
+                  <mat-icon class="text-[#888899] group-hover:text-[#00FF88] scale-75 transition-all">{{ market.icon }}</mat-icon>
+                </div>
+                <h3 class="font-bold uppercase tracking-wider text-xs text-[#888899]">{{ market.title }}</h3>
+              </div>
+              <div class="space-y-5">
+                @for (item of market.items; track item.label) {
+                  <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                      <span class="text-[#888899] font-medium">{{ item.label }}</span>
+                      <span class="text-[#00FF88] font-black">{{ item.value }}%</span>
+                    </div>
+                    <div class="h-1.5 bg-[#0D0D0F] rounded-full overflow-hidden">
+                      <div class="h-full bg-gradient-to-r from-[#00FF88] to-[#00CCFF] transition-all duration-1000" [style.width.%]="item.value"></div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Final Recommendation -->
+        <div class="bg-gradient-to-br from-[#1A1A24] to-[#13131A] p-8 rounded-2xl border-2 border-[#00FF88] shadow-2xl shadow-[#00FF88]/10">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2 text-[#00FF88] font-black text-xs tracking-[0.2em] uppercase">
+              <mat-icon class="scale-75">stars</mat-icon>
+              Recomendação Final
+            </div>
+          </div>
+          <h2 class="font-poppins text-xl md:text-2xl font-black mb-6">{{ finalRec()?.title }}</h2>
+          <div class="grid grid-cols-3 gap-4 pt-6 border-t border-[#25252E]">
+            <div class="text-center space-y-1">
+              <span class="block text-[10px] uppercase font-bold text-[#888899] tracking-widest">Confiança</span>
+              <p class="text-[#00FF88] font-bold">{{ finalRec()?.confidence }}%</p>
+            </div>
+            <div class="text-center space-y-1">
+              <span class="block text-[10px] uppercase font-bold text-[#888899] tracking-widest">Risco</span>
+              <p [class]="'font-bold ' + (finalRec()?.risk === 'Baixo' ? 'text-[#00FF88]' : finalRec()?.risk === 'Médio' ? 'text-[#FFAA00]' : 'text-[#FF4444]')">
+                {{ finalRec()?.risk }}
+              </p>
+            </div>
+            <div class="text-center space-y-1">
+              <span class="block text-[10px] uppercase font-bold text-[#888899] tracking-widest">Stake</span>
+              <p class="font-bold">{{ finalRec()?.stake }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Empty State -->
+    @if (!showResults() && !loading() && !selectedLeague()) {
+      <div class="py-12 text-center space-y-6">
+        <div class="w-20 h-20 bg-[#13131A] rounded-full flex items-center justify-center mx-auto border border-[#25252E]">
+          <mat-icon class="text-[#25252E] scale-[1.5]">sports_soccer</mat-icon>
+        </div>
+        <div class="max-w-md mx-auto">
+          <h2 class="text-lg font-bold mb-2">Selecione uma liga acima</h2>
+          <p class="text-[#888899] text-sm">Escolha uma liga para ver os próximos jogos e palpites gerados por IA.</p>
+        </div>
+      </div>
+    }
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="p-8 border-t border-[#25252E] text-center">
+    <p class="text-[#44444F] text-xs font-bold uppercase tracking-[0.3em]">OddsUp AI Analysis &copy; 2026 - Premium Betting Intelligence</p>
+  </footer>
+</div>
+
+<!-- Template Reutilizável para Card de Jogo -->
+<ng-template #gameCard let-game>
+  <div class="bg-[#13131A] border border-[#25252E] rounded-3xl p-6 hover:border-[#00FF88] transition-all duration-300 group shadow-lg hover:shadow-[#00FF88]/10 flex flex-col gap-4">
+    <!-- Header: Times -->
+    <div class="flex items-center justify-between gap-4">
+      <div class="flex flex-col items-center gap-2 flex-1">
+        <img [src]="game.homeLogo" alt="Logo {{ game.homeTeam }}" class="w-12 h-12 object-contain" referrerpolicy="no-referrer">
+        <span class="text-sm font-bold text-center leading-tight">{{ game.homeTeam }}</span>
+      </div>
+      <div class="flex flex-col items-center">
+        <span class="text-[#888899] font-black text-xs italic">VS</span>
+      </div>
+      <div class="flex flex-col items-center gap-2 flex-1">
+        <img [src]="game.awayLogo" alt="Logo {{ game.awayTeam }}" class="w-12 h-12 object-contain" referrerpolicy="no-referrer">
+        <span class="text-sm font-bold text-center leading-tight">{{ game.awayTeam }}</span>
+      </div>
+    </div>
+
+    <!-- Data e Local -->
+    <div class="text-center space-y-1 py-2 border-y border-[#25252E]/50">
+      <p class="text-[#888899] text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-1">
+        <mat-icon class="scale-50 text-[#00FF88]">calendar_today</mat-icon>
+        {{ game.dayOfWeek }}, {{ game.date }} - {{ game.time }} (Brasília)
+      </p>
+    </div>
+
+    <!-- Palpite e Confiança -->
+    <div class="bg-[#0D0D0F] p-4 rounded-2xl border border-[#25252E] space-y-3">
+      <div class="flex items-center gap-2">
+        <mat-icon class="text-[#00FF88] scale-75">target</mat-icon>
+        <span class="text-xs font-black text-white uppercase tracking-widest">🎯 PALPITE:</span>
+      </div>
+      <p class="text-[#00FF88] font-black text-lg">{{ game.palpite }}</p>
+      
+      <div class="space-y-1">
+        <div class="flex justify-between text-[10px] font-bold">
+          <span class="text-[#888899] uppercase tracking-widest">📊 Confiança: {{ game.confianca > 75 ? 'Alta' : (game.confianca > 60 ? 'Média' : 'Regular') }}</span>
+          <span class="text-[#00FF88]">{{ game.confianca }}%</span>
+        </div>
+        <div class="h-2 bg-[#13131A] rounded-full overflow-hidden flex">
+          @for (i of [1,2,3,4,5,6,7,8,9,10]; track i) {
+            <div class="flex-1 border-r border-[#0D0D0F] last:border-0"
+                 [class.bg-[#00FF88]]="i <= (game.confianca / 10)"
+                 [class.bg-[#25252E]]="i > (game.confianca / 10)"></div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Resumo -->
+    <div class="flex items-start gap-2 text-[#888899] text-xs leading-relaxed italic">
+      <mat-icon class="scale-50 mt-[-4px]">lightbulb</mat-icon>
+      <span>💡 Resumo: {{ game.resumo }}</span>
+    </div>
+
+    <!-- Botão Analisar -->
+    <button (click)="analyzeGame(game)" 
+            class="w-full bg-[#00FF88]/10 border border-[#00FF88]/30 text-[#00FF88] py-4 rounded-2xl font-black text-xs hover:bg-[#00FF88] hover:text-black transition-all uppercase tracking-widest flex items-center justify-center gap-2 mt-auto">
+      <mat-icon class="scale-75">search</mat-icon>
+      [🔍 VER ANÁLISE COMPLETA]
+    </button>
+  </div>
+</ng-template>

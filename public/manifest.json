@@ -1,0 +1,21 @@
+{
+  "name": "OddsUp Premium",
+  "short_name": "OddsUp",
+  "description": "Análise de apostas esportivas com IA",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#00FF88",
+  "background_color": "#0A0A0C",
+  "icons": [
+    {
+      "src": "https://picsum.photos/seed/oddsuplogo/192/192",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://picsum.photos/seed/oddsuplogo/512/512",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
